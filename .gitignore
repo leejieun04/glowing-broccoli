@@ -1,52 +1,524 @@
-# http://www.gnu.org/software/automake
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>남김 없이 먹기 식판 게임</title>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f7f5f0;
+      text-align: center;
+      padding: 20px;
+    }
 
-Makefile.in
-/ar-lib
-/mdate-sh
-/py-compile
-/test-driver
-/ylwrap
-.deps/
-.dirstamp
+    #startScreen {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 70vh;
+      width: 90vw;
+      max-width: 900px;
+      margin: 0 auto;
+      background: #78E150;
+      border-radius: 30px;
+      box-shadow: 0 8px 20px rgba(0, 128, 0, 0.3);
+      padding: 40px 20px;
+      color: #fff8e1;
+      text-shadow: 1.5px 1.5px 3px rgba(0,0,0,0.25);
+      user-select: none;
+      animation: fadeIn 1.2s ease forwards;
+    }
 
-# http://www.gnu.org/software/autoconf
+   /* 제목과 버튼 묶음을 분리해서 버튼들만 가로 정렬 */
+#startScreen h1 {
+  font-size: 80px;
+  margin-bottom: 30px;
+}
 
-autom4te.cache
-/autoscan.log
-/autoscan-*.log
-/aclocal.m4
-/compile
-/config.cache
-/config.guess
-/config.h.in
-/config.log
-/config.status
-/config.sub
-/configure
-/configure.scan
-/depcomp
-/install-sh
-/missing
-/stamp-h1
+/* 버튼들을 감싸는 컨테이너 추가 */
+#buttonContainer {
+  display: flex;
+  gap: 30px;
+}
 
-# https://www.gnu.org/software/libtool/
+    #startScreen button {
+      font-size: 32px;
+      padding: 20px 40px;
+      border: 3px solid #4caf50;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
 
-/ltmain.sh
+    #startScreen button:hover {
+      background-color: #ffb347;
+      border-color: #388e3c;
+      box-shadow: 0 10px 25px rgba(255, 179, 71, 0.8);
+    }
 
-# http://www.gnu.org/software/texinfo
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
 
-/texinfo.tex
+    #gameScreen {
+      display: none;
+    }
 
-# http://www.gnu.org/software/m4/
+    .food-list {
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
 
-m4/libtool.m4
-m4/ltoptions.m4
-m4/ltsugar.m4
-m4/ltversion.m4
-m4/lt~obsolete.m4
+    .food-btn {
+      width: 100px;
+      height: 100px;
+      font-size: 40px;
+      background-color: #ffe08c;
+      border: 2px solid #ffa500;
+      border-radius: 15px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease;
+      font-weight: bold;
+      user-select: none;
+    }
 
-# Generated Makefile
-# (meta build system like autotools,
-# can automatically generate from config.status script
-# (which is called by configure script))
-Makefile
+    .food-btn:hover {
+      background-color: #ffd460;
+    }
+
+    .food-btn::after {
+      content: attr(data-food);
+      font-size: 14px;
+      color: #444;
+      margin-top: 5px;
+      user-select: none;
+    }
+
+    #plate {
+      margin: 20px auto;
+      width: 700px;
+      height: 400px;
+      background: #fffbe6;
+      border: 4px solid #d9b84c;
+      border-radius: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: 1.2fr 1.8fr;
+      gap: 15px;
+      padding: 20px;
+      box-sizing: border-box;
+      position: relative;
+      user-select: none;
+    }
+
+    .side-dish-slot, .rice-soup-slot {
+      position: relative;
+    }
+
+    .side-dish-slot {
+      border: 3px dashed #d9a701;
+      border-radius: 20px;
+      background-color: #fff8d6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rice-soup-container {
+      grid-column: 1 / 4;
+      display: flex;
+      gap: 15px;
+    }
+
+    .rice-soup-slot {
+      flex: 1;
+      border: 3px dashed #b4d7b0;
+      border-radius: 20px;
+      background-color: #e8f6e4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 50px;
+      user-select: none;
+    }
+
+    .slot.empty::after {
+      content: "여기에 담기";
+      position: absolute;
+      bottom: 8px;
+      font-size: 12px;
+      color: #999;
+      user-select: none;
+    }
+
+    .food-item {
+      font-size: 80px;
+      user-select: none;
+      transition: opacity 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+/* 밥과 국 아이콘만 더 크게 */
+.rice-soup-slot .food-item {
+  font-size: 120px; /* 원하는 크기로 조절 가능 */
+}
+
+    .eat-tool {
+      position: absolute;
+      font-size: 70px;
+      pointer-events: none;
+      user-select: none;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      z-index: 5;
+      left: 50%;
+      top: 5%;
+      transform: translateX(-50%);
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      min-height: 30px;
+      color: #c0392b;
+      user-select: none;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    .controls button {
+      padding: 12px 25px;
+      font-size: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+      user-select: none;
+    }
+
+    .controls button:hover {
+      background-color: #45a049;
+    }
+
+    #bigMessage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 224, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 56px;
+      font-weight: 900;
+      color: #ff6f61;
+      border-radius: 30px;
+      user-select: none;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    #bigMessage.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+#howToModal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+}
+
+#howToContent {
+  background: #fff;
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 500px;
+  text-align: left;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  color: #333;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+#howToContent h2 {
+  margin-top: 0;
+  color: #4caf50;
+}
+
+#howToContent button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 10px;
+  background: #4caf50;
+  color: #fff;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+
+  <div id="startScreen">
+  <h1>🍽 남김 없이 먹어요!</h1>
+  <div id="buttonContainer">
+    <button id="startBtn">게임 시작하기</button>
+    <button id="howToBtn">게임 방법</button>
+  </div>
+</div>
+
+  <div id="gameScreen">
+    <div class="food-list">
+      <button class="food-btn" data-food="고구마" data-type="side" data-emoji="🍠">🍠</button>
+      <button class="food-btn" data-food="샐러드" data-type="side" data-emoji="🥗">🥗</button>
+      <button class="food-btn" data-food="닭고기" data-type="side" data-emoji="🍗">🍗</button>
+      <button class="food-btn" data-food="생선" data-type="side" data-emoji="🐟">🐟</button>
+      <button class="food-btn" data-food="브로콜리" data-type="side" data-emoji="🥦">🥦</button>
+      <button class="food-btn" data-food="시금치" data-type="side" data-emoji="🥬">🥬</button>
+      <button class="food-btn" data-food="밥" data-type="rice" data-emoji="🍚">🍚</button>
+      <button class="food-btn" data-food="국" data-type="rice" data-emoji="🍲">🍲</button>
+    </div>
+
+    <div id="plate">
+      <div class="side-dish-slot slot empty" data-slot-type="side"></div>
+      <div class="side-dish-slot slot empty" data-slot-type="side"></div>
+      <div class="side-dish-slot slot empty" data-slot-type="side"></div>
+
+      <div class="rice-soup-container">
+        <div class="rice-soup-slot slot empty" data-slot-type="rice"></div>
+        <div class="rice-soup-slot slot empty" data-slot-type="rice"></div>
+      </div>
+
+      <div id="bigMessage">다 먹었어요~!</div>
+    </div>
+
+    <div id="message"></div>
+    <div class="controls">
+      <button id="leftoverBtn">남겼어요</button>
+      <button id="resetBtn">다시하기</button>
+    </div>
+  </div>
+
+  <audio id="biteSound" src="https://actions.google.com/sounds/v1/human_voices/chewing_chips.ogg" preload="auto"></audio>
+  <audio id="successSound" src="https://actions.google.com/sounds/v1/cartoon/cartoon_cowbell.ogg" preload="auto"></audio>
+  <audio id="errorSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+
+
+
+
+<div id="howToModal" style="display: none;">
+  <div id="howToContent">
+    <h2>게임 방법</h2>
+    <p>
+      1. 다양한 반찬과 밥, 국을 식판에 클릭하여 담으세요.<br>
+      2. 담은 음식은 클릭하면 한 입씩 먹을 수 있어요.<br>
+      3. 모든 음식을 다 먹으면 "다 먹었어요~!" 메시지가 나와요.<br>
+      4. "남겼어요" 버튼을 누르면 식판이 초기화돼요.<br>
+      5. "다시하기" 버튼으로 새로 시작할 수 있어요.<br>
+      6. 밥과 반찬을 다 먹어 환경을 지켜요~!
+    </p>
+    <button id="closeHowTo">닫기</button>
+  </div>
+</div>
+
+  <script>
+    const startScreen = document.getElementById('startScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const startBtn = document.getElementById('startBtn');
+    const buttons = document.querySelectorAll('.food-btn');
+    const sideDishSlots = Array.from(document.querySelectorAll('.side-dish-slot'));
+    const riceSoupSlots = Array.from(document.querySelectorAll('.rice-soup-slot'));
+    const message = document.getElementById('message');
+    const bigMessage = document.getElementById('bigMessage');
+    const leftoverBtn = document.getElementById('leftoverBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const biteSound = document.getElementById('biteSound');
+    const successSound = document.getElementById('successSound');
+    const errorSound = document.getElementById('errorSound');
+
+    const maxBites = 2;
+    const slotBites = new Map();
+
+    startBtn.addEventListener('click', () => {
+      startScreen.style.display = 'none';
+      gameScreen.style.display = 'block';
+    });
+
+    // 음식 담기 함수
+    function addFoodToSlot(foodEmoji, foodType) {
+      let targetSlots = foodType === 'side' ? sideDishSlots : riceSoupSlots;
+
+      // 빈 슬롯 찾기
+      const emptySlot = targetSlots.find(slot => slot.classList.contains('empty'));
+      if (!emptySlot) {
+        message.textContent = `더 이상 담을 공간이 없어요!`;
+        errorSound.play();
+        return false;
+      }
+
+      // 음식 추가
+      const foodSpan = document.createElement('span');
+      foodSpan.classList.add('food-item');
+      foodSpan.textContent = foodEmoji;
+      emptySlot.appendChild(foodSpan);
+
+      emptySlot.classList.remove('empty');
+      slotBites.set(emptySlot, maxBites);
+      message.textContent = '';
+      return true;
+    }
+
+    // 음식 담기 버튼 클릭
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const emoji = btn.dataset.emoji;
+        const type = btn.dataset.type;
+        addFoodToSlot(emoji, type);
+      });
+    });
+
+    // 먹는 애니메이션 툴 생성 및 표시
+    function showEatTool(slot, foodType) {
+      const eatTool = document.createElement('span');
+      eatTool.classList.add('eat-tool');
+      eatTool.textContent = foodType === 'side' ? '🥢' : '🥄';
+      slot.appendChild(eatTool);
+
+      // 0.6초 후에 천천히 사라지기
+      setTimeout(() => {
+        eatTool.style.opacity = '0';
+        setTimeout(() => {
+          if (slot.contains(eatTool)) {
+            slot.removeChild(eatTool);
+          }
+        }, 400);
+      }, 600);
+    }
+
+    // 음식 먹기 (클릭 시)
+    function eatFood(slot) {
+      if (slot.classList.contains('empty')) return;
+
+      let bitesLeft = slotBites.get(slot);
+      if (!bitesLeft) return;
+
+      showEatTool(slot, slot.dataset.slotType);
+      biteSound.currentTime = 0;
+      biteSound.play();
+
+      bitesLeft--;
+      slotBites.set(slot, bitesLeft);
+
+      // 음식 점점 사라지게, 작아지게
+      const foodItem = slot.querySelector('.food-item');
+      if (!foodItem) return;
+
+      if (bitesLeft <= 0) {
+        foodItem.style.opacity = '0';
+        foodItem.style.transform = 'scale(0.5) translateY(-20px)';
+        setTimeout(() => {
+          if (slot.contains(foodItem)) {
+            slot.removeChild(foodItem);
+            slot.classList.add('empty');
+            slotBites.delete(slot);
+            checkAllEaten();
+          }
+        }, 300);
+      } else {
+        // 중간 한 입 먹었을 때 조금 투명해지고 크기 줄임
+        foodItem.style.opacity = '0.5';
+        foodItem.style.transform = 'scale(0.8) translateY(-10px)';
+        setTimeout(() => {
+        }, 500);
+      }
+    }
+
+    // 음식칸 클릭 이벤트 등록 (동적 생성 고려)
+    function setupSlotClick(slot) {
+      slot.addEventListener('click', () => {
+        eatFood(slot);
+      });
+    }
+
+    sideDishSlots.forEach(setupSlotClick);
+    riceSoupSlots.forEach(setupSlotClick);
+
+    // 모든 음식 다 먹었는지 검사
+    function checkAllEaten() {
+      const anyFoodLeft = [...sideDishSlots, ...riceSoupSlots].some(slot => !slot.classList.contains('empty'));
+      if (!anyFoodLeft) {
+        bigMessage.classList.add('show');
+        successSound.play();
+        message.textContent = '';
+      }
+    }
+
+    // 남겼어요 버튼 - 음식 모두 제거, 메시지 출력
+    leftoverBtn.addEventListener('click', () => {
+      [...sideDishSlots, ...riceSoupSlots].forEach(slot => {
+        slot.innerHTML = '';
+        slot.classList.add('empty');
+      });
+      slotBites.clear();
+      bigMessage.textContent = '다음에는 꼭 다 먹어요~!';
+      bigMessage.classList.add('show');
+      message.textContent = '';
+      errorSound.play();
+    });
+
+    // 다시하기 버튼
+    resetBtn.addEventListener('click', () => {
+      [...sideDishSlots, ...riceSoupSlots].forEach(slot => {
+        slot.innerHTML = '';
+        slot.classList.add('empty');
+      });
+      slotBites.clear();
+      bigMessage.classList.remove('show');
+      message.textContent = '';
+    });
+    // 게임 방법 모달 열고 닫기
+    const howToBtn = document.getElementById('howToBtn');
+    const howToModal = document.getElementById('howToModal');
+    const closeHowTo = document.getElementById('closeHowTo');
+
+    howToBtn.addEventListener('click', () => {
+      howToModal.style.display = 'flex';
+    });
+
+    closeHowTo.addEventListener('click', () => {
+      howToModal.style.display = 'none';
+    });
+
+
+  </script>
+</body>
+</html>
